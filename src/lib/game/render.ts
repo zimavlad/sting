@@ -1,8 +1,9 @@
-import { SHAHED_LEN, STAGE, STING_LEN, TARGET } from './config';
-import { PALETTE, STING_EXTENT, drawShahed, drawSting, stingSilhouette } from './shapes';
+import { SHAHED_LEN, STAGE, STING_HALF_SPAN, STING_LEN, TARGET } from './config';
+import shahedSvg from './sprites/shahed.svg?raw';
+import stingSvg from './sprites/sting.svg?raw';
 
 export interface Scene {
-	/** Секунди, лише для живих деталей: пропелери, туман, пульс. */
+	/** Секунди, лише для живих деталей: туман. */
 	t: number;
 	shahedX: number | null;
 	stingX: number | null;
@@ -13,6 +14,14 @@ export interface Scene {
 	/** Зсув зупиненого Стінга від контуру — малюємо мірну лінію. */
 	measure: number | null;
 }
+
+const ACCENT = '#f2c200';
+/** Колір корпусу Стінга — для шлейфу. */
+const KHAKI = '196, 176, 119';
+
+// Розміри viewBox у SVG: довжина дрона — 1000 одиниць.
+const STING_BOX = { w: 1, h: 0.88 };
+const SHAHED_BOX = { w: 1.02, h: 0.74 };
 
 function mulberry(seed: number) {
 	return () => {
@@ -28,6 +37,18 @@ function canvas(w: number, h: number) {
 	const c = document.createElement('canvas');
 	c.width = Math.max(1, Math.round(w));
 	c.height = Math.max(1, Math.round(h));
+	return c;
+}
+
+function loadSvg(svg: string): Promise<HTMLImageElement> {
+	const img = new Image();
+	img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+	return img.decode().then(() => img);
+}
+
+function raster(img: HTMLImageElement, w: number, h: number) {
+	const c = canvas(w, h);
+	c.getContext('2d')!.drawImage(img, 0, 0, c.width, c.height);
 	return c;
 }
 
@@ -72,40 +93,49 @@ function makeBackground(w: number, h: number, scale: number) {
 }
 
 /**
- * Контур навколо обʼєднаного силуету: заливка й товста обводка кожної частини,
- * потім внутрішність вирізається — лишається тільки зовнішня лінія.
+ * Контур будується з прозорості самого спрайта: силует, зсунутий по колу на товщину
+ * лінії, мінус сам силует. Тож контур завжди точно повторює малюнок, хоч би який він був.
  */
-function makeOutline(scale: number, color: string, fill: string, width: number) {
-	const size = STING_EXTENT * 2 + width * 4;
-	const c = canvas(size * scale, size * scale);
-	const ctx = c.getContext('2d')!;
-	ctx.setTransform(scale, 0, 0, scale, (size * scale) / 2, (size * scale) / 2);
-	const parts = stingSilhouette();
-	ctx.fillStyle = color;
-	ctx.strokeStyle = color;
-	ctx.lineWidth = width * 2;
-	ctx.lineJoin = 'round';
-	for (const p of parts) {
-		ctx.fill(p);
-		ctx.stroke(p);
+function makeOutline(sprite: HTMLCanvasElement, ring: number, color: string, fillAlpha: number) {
+	const mask = canvas(sprite.width, sprite.height);
+	const mctx = mask.getContext('2d')!;
+	mctx.drawImage(sprite, 0, 0);
+	mctx.globalCompositeOperation = 'source-in';
+	mctx.fillStyle = color;
+	mctx.fillRect(0, 0, mask.width, mask.height);
+
+	const pad = Math.ceil(ring) + 2;
+	const out = canvas(mask.width + pad * 2, mask.height + pad * 2);
+	const ctx = out.getContext('2d')!;
+	const steps = 32;
+	for (let i = 0; i < steps; i++) {
+		const a = (i / steps) * Math.PI * 2;
+		ctx.drawImage(mask, pad + Math.cos(a) * ring, pad + Math.sin(a) * ring);
 	}
 	ctx.globalCompositeOperation = 'destination-out';
-	for (const p of parts) ctx.fill(p);
+	ctx.drawImage(mask, pad, pad);
 	ctx.globalCompositeOperation = 'source-over';
-	ctx.fillStyle = fill;
-	for (const p of parts) ctx.fill(p);
-	return c;
+	ctx.globalAlpha = fillAlpha;
+	ctx.drawImage(mask, pad, pad);
+	return out;
 }
 
 export class Renderer {
 	private ctx: CanvasRenderingContext2D;
 	private scale = 1;
+	private images: { sting: HTMLImageElement; shahed: HTMLImageElement } | null = null;
 	private bg: HTMLCanvasElement | null = null;
+	private sting: HTMLCanvasElement | null = null;
+	private shahed: HTMLCanvasElement | null = null;
 	private outlineIdle: HTMLCanvasElement | null = null;
 	private outlineWin: HTMLCanvasElement | null = null;
 
 	constructor(private el: HTMLCanvasElement) {
 		this.ctx = el.getContext('2d', { alpha: false })!;
+		Promise.all([loadSvg(stingSvg), loadSvg(shahedSvg)]).then(([sting, shahed]) => {
+			this.images = { sting, shahed };
+			this.rebuildSprites();
+		});
 	}
 
 	resize(cssW: number, cssH: number, dpr: number) {
@@ -116,8 +146,17 @@ export class Renderer {
 		this.el.height = h;
 		this.scale = w / STAGE.w;
 		this.bg = makeBackground(w, h, this.scale);
-		this.outlineIdle = makeOutline(this.scale, 'rgba(255,255,255,0.92)', 'rgba(255,255,255,0.05)', 3);
-		this.outlineWin = makeOutline(this.scale, PALETTE.yellow, 'rgba(242,194,0,0.08)', 4);
+		this.rebuildSprites();
+	}
+
+	/** SVG растеризується під поточний розмір екрана, щоб на 86" не було мила. */
+	private rebuildSprites() {
+		if (!this.images || !this.bg) return;
+		const s = this.scale;
+		this.sting = raster(this.images.sting, STING_LEN * STING_BOX.w * s, STING_LEN * STING_BOX.h * s);
+		this.shahed = raster(this.images.shahed, SHAHED_LEN * SHAHED_BOX.w * s, SHAHED_LEN * SHAHED_BOX.h * s);
+		this.outlineIdle = makeOutline(this.sting, 3 * s, 'rgba(255,255,255,0.92)', 0.07);
+		this.outlineWin = makeOutline(this.sting, 4 * s, ACCENT, 0.12);
 	}
 
 	draw(s: Scene) {
@@ -128,21 +167,24 @@ export class Renderer {
 		ctx.drawImage(this.bg, 0, 0);
 		ctx.setTransform(scale, 0, 0, scale, 0, 0);
 		this.fog(s.t);
+		ctx.setTransform(1, 0, 0, 1, 0, 0);
 
-		if (s.shahedX !== null) this.blurred(s.shahedX, s.shahedSpeed, 2, SHAHED_LEN, () => drawShahed(ctx));
-		if (s.stingX !== null) {
+		if (this.shahed && s.shahedX !== null) this.blurred(this.shahed, s.shahedX, s.shahedSpeed, 2);
+		if (this.sting && s.stingX !== null) {
 			if (s.stingSpeed > 0) this.streak(s.stingX, s.stingSpeed);
-			const spin = s.t * 40;
-			this.blurred(s.stingX, s.stingSpeed, 5, STING_LEN, () => drawSting(ctx, spin));
+			this.blurred(this.sting, s.stingX, s.stingSpeed, 5);
 		}
 
 		const outline = s.outline === 'win' ? this.outlineWin : s.outline === 'idle' ? this.outlineIdle : null;
-		if (outline) {
-			ctx.setTransform(1, 0, 0, 1, 0, 0);
-			ctx.drawImage(outline, TARGET.x * scale - outline.width / 2, TARGET.y * scale - outline.height / 2);
-			ctx.setTransform(scale, 0, 0, scale, 0, 0);
-		}
+		if (outline) this.sprite(outline, TARGET.x, 1);
+		ctx.globalAlpha = 1;
 		if (s.measure !== null && s.stingX !== null) this.ruler(s.stingX);
+	}
+
+	/** Спрайт по центру в точці (x, TARGET.y) сцени; трансформація — одинична. */
+	private sprite(img: HTMLCanvasElement, x: number, alpha: number) {
+		this.ctx.globalAlpha = alpha;
+		this.ctx.drawImage(img, x * this.scale - img.width / 2, TARGET.y * this.scale - img.height / 2);
 	}
 
 	private fog(t: number) {
@@ -159,37 +201,37 @@ export class Renderer {
 	}
 
 	/** Розмиття руху — кілька прозорих копій позаду. */
-	private blurred(x: number, speed: number, ghosts: number, len: number, draw: () => void) {
-		const { ctx } = this;
-		if (x < -len || x > STAGE.w + len) return;
+	private blurred(img: HTMLCanvasElement, x: number, speed: number, ghosts: number) {
+		const half = img.width / this.scale / 2;
+		if (x < -half || x > STAGE.w + half) return;
 		const n = speed > 0 ? ghosts : 0;
 		for (let k = n; k >= 0; k--) {
-			ctx.save();
-			ctx.globalAlpha = k === 0 ? 1 : 0.3 * (1 - k / (n + 1));
-			ctx.translate(x - k * speed * 0.011, TARGET.y);
-			draw();
-			ctx.restore();
+			this.sprite(img, x - k * speed * 0.011, k === 0 ? 1 : 0.3 * (1 - k / (n + 1)));
 		}
+		this.ctx.globalAlpha = 1;
 	}
 
 	private streak(x: number, speed: number) {
-		const { ctx } = this;
-		const tail = x - STING_LEN * 0.45;
+		const { ctx, scale } = this;
+		ctx.setTransform(scale, 0, 0, scale, 0, 0);
+		const tail = x - STING_LEN * 0.4;
 		const from = tail - speed * 0.14;
 		const g = ctx.createLinearGradient(from, 0, tail, 0);
-		g.addColorStop(0, 'rgba(242,194,0,0)');
-		g.addColorStop(1, 'rgba(242,194,0,0.22)');
+		g.addColorStop(0, `rgba(${KHAKI},0)`);
+		g.addColorStop(1, `rgba(${KHAKI},0.28)`);
 		ctx.fillStyle = g;
-		ctx.fillRect(from, TARGET.y - 22, tail - from, 44);
-		ctx.fillStyle = 'rgba(255,255,255,0.05)';
-		for (const dy of [-150, 150]) ctx.fillRect(from + 80, TARGET.y + dy - 1, tail - from - 140, 2);
+		ctx.fillRect(from, TARGET.y - 40, tail - from, 80);
+		ctx.fillStyle = 'rgba(255,255,255,0.06)';
+		for (const dy of [-130, 130]) ctx.fillRect(from + 80, TARGET.y + dy - 1, tail - from - 140, 2);
+		ctx.setTransform(1, 0, 0, 1, 0, 0);
 	}
 
 	/** Мірна лінія: де мав бути центр і де Стінг зупинився. */
 	private ruler(stingX: number) {
-		const { ctx } = this;
-		const top = TARGET.y - STING_EXTENT;
-		const y = TARGET.y + STING_EXTENT + 24;
+		const { ctx, scale } = this;
+		ctx.setTransform(scale, 0, 0, scale, 0, 0);
+		const top = TARGET.y - STING_HALF_SPAN - 20;
+		const y = TARGET.y + STING_HALF_SPAN + 30;
 		ctx.lineWidth = 2;
 		ctx.setLineDash([8, 8]);
 		ctx.strokeStyle = 'rgba(255,255,255,0.45)';
@@ -198,12 +240,13 @@ export class Renderer {
 		ctx.lineTo(TARGET.x, y + 14);
 		ctx.stroke();
 		ctx.setLineDash([]);
-		ctx.strokeStyle = PALETTE.yellow;
+		ctx.strokeStyle = ACCENT;
 		ctx.beginPath();
 		ctx.moveTo(stingX, top);
 		ctx.lineTo(stingX, y + 14);
 		ctx.moveTo(TARGET.x, y);
 		ctx.lineTo(stingX, y);
 		ctx.stroke();
+		ctx.setTransform(1, 0, 0, 1, 0, 0);
 	}
 }

@@ -1,0 +1,120 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-500 -440 1000 880">
+	<!-- Sting згори, ніс праворуч; перемальовано з рендерів Wild Hornets. Пропелери крутяться — їх не видно. -->
+	<defs>
+		<linearGradient id="body" x1="0" y1="-119" x2="0" y2="119" gradientUnits="userSpaceOnUse">
+			<stop offset="0" stop-color="#7d6d40" />
+			<stop offset="0.22" stop-color="#c4b077" />
+			<stop offset="0.45" stop-color="#d6c48c" />
+			<stop offset="0.75" stop-color="#ad9a62" />
+			<stop offset="1" stop-color="#665834" />
+		</linearGradient>
+		<radialGradient id="dome" cx="390" cy="-40" r="170" gradientUnits="userSpaceOnUse">
+			<stop offset="0" stop-color="#e3d29c" />
+			<stop offset="0.55" stop-color="#bda970" />
+			<stop offset="1" stop-color="#6e6038" />
+		</radialGradient>
+		<linearGradient id="wing" x1="68" y1="0" x2="-84" y2="0" gradientUnits="userSpaceOnUse">
+			<stop offset="0" stop-color="#d8c68f" />
+			<stop offset="0.18" stop-color="#c3ae73" />
+			<stop offset="1" stop-color="#9f8b58" />
+		</linearGradient>
+		<linearGradient id="arm" x1="-132" y1="0" x2="-224" y2="0" gradientUnits="userSpaceOnUse">
+			<stop offset="0" stop-color="#cdb97e" />
+			<stop offset="0.45" stop-color="#b6a269" />
+			<stop offset="1" stop-color="#766640" />
+		</linearGradient>
+		<linearGradient id="cone" x1="0" y1="0" x2="0" y2="1">
+			<stop offset="0" stop-color="#7d6d40" />
+			<stop offset="0.3" stop-color="#d2c088" />
+			<stop offset="0.7" stop-color="#b09c63" />
+			<stop offset="1" stop-color="#5f5230" />
+		</linearGradient>
+		<linearGradient id="motor" x1="0" y1="0" x2="0" y2="1">
+			<stop offset="0" stop-color="#0e0e0e" />
+			<stop offset="0.35" stop-color="#3a3a3a" />
+			<stop offset="1" stop-color="#121212" />
+		</linearGradient>
+		<radialGradient id="ball" cx="-466" cy="-20" r="70" gradientUnits="userSpaceOnUse">
+			<stop offset="0" stop-color="#f7c38a" />
+			<stop offset="0.5" stop-color="#e2964a" />
+			<stop offset="1" stop-color="#9c5a26" />
+		</radialGradient>
+	</defs>
+
+	<!-- задні плавники -->
+	<g fill="#b09d64" stroke="#5f5230" stroke-width="3" stroke-linejoin="round">
+		<path d="M -282 -112 Q -352 -124 -430 -196 L -421 -150 Q -399 -120 -372 -100 Z" />
+		<path d="M -282 112 Q -352 124 -430 196 L -421 150 Q -399 120 -372 100 Z" />
+	</g>
+
+	<!-- балка моторів -->
+	<rect x="-224" y="-392" width="92" height="784" rx="40" fill="url(#arm)" />
+	<g stroke="#161616" stroke-width="7">
+		<line x1="-224" y1="-232" x2="-132" y2="-232" />
+		<line x1="-224" y1="-141" x2="-132" y2="-141" />
+		<line x1="-224" y1="141" x2="-132" y2="141" />
+		<line x1="-224" y1="232" x2="-132" y2="232" />
+	</g>
+
+	<!-- друга пара мотогондол, видно лише носами -->
+	<path d="M -160 -323 Q -114 -323 -96 -287 Q -114 -251 -160 -251 Z" fill="url(#cone)" />
+	<path d="M -160 251 Q -114 251 -96 287 Q -114 323 -160 323 Z" fill="url(#cone)" />
+
+	<!-- крило -->
+	<rect x="-84" y="-430" width="152" height="860" rx="16" fill="url(#wing)" />
+	<line x1="63" y1="-422" x2="63" y2="422" stroke="#e7d7a6" stroke-width="4" opacity="0.7" />
+	<line x1="-80" y1="-422" x2="-80" y2="422" stroke="#6e6038" stroke-width="3" opacity="0.6" />
+
+	<!-- зовнішні мотогондоли: мотор, рукав, конус -->
+	<g id="nacelle-l">
+		<rect x="-284" y="-386" width="92" height="80" rx="6" fill="url(#motor)" />
+		<rect x="-268" y="-386" width="12" height="80" fill="#4a4a4a" />
+		<rect x="-236" y="-386" width="5" height="80" fill="#5a5a5a" />
+		<circle cx="-290" cy="-346" r="11" fill="#8f8f8f" />
+		<rect x="-204" y="-392" width="64" height="92" rx="8" fill="url(#cone)" />
+		<path d="M -146 -392 Q -96 -392 -72 -346 Q -96 -300 -146 -300 Z" fill="url(#cone)" />
+	</g>
+	<g id="nacelle-r">
+		<rect x="-284" y="306" width="92" height="80" rx="6" fill="url(#motor)" />
+		<rect x="-268" y="306" width="12" height="80" fill="#4a4a4a" />
+		<rect x="-236" y="306" width="5" height="80" fill="#5a5a5a" />
+		<circle cx="-290" cy="346" r="11" fill="#8f8f8f" />
+		<rect x="-204" y="300" width="64" height="92" rx="8" fill="url(#cone)" />
+		<path d="M -146 300 Q -96 300 -72 346 Q -96 392 -146 392 Z" fill="url(#cone)" />
+	</g>
+
+	<!-- фюзеляж і ніс-куля -->
+	<path d="M 311 -119 L -285 -119 Q -392 -114 -392 -62 L -392 62 Q -392 114 -285 119 L 311 119 Z" fill="url(#body)" />
+	<path d="M 311 -119 C 428 -119 500 -64 500 0 C 500 64 428 119 311 119 Z" fill="url(#dome)" />
+	<line x1="311" y1="-119" x2="311" y2="119" stroke="#5a4d2c" stroke-width="5" />
+	<g fill="#c2ae74" stroke="#6e6038" stroke-width="2.5" stroke-linejoin="round">
+		<path d="M 296 -119 L 418 -116 Q 380 -84 300 -58 Z" />
+		<path d="M 296 119 L 418 116 Q 380 84 300 58 Z" />
+	</g>
+	<g stroke="#6e6038" stroke-width="3.5">
+		<line x1="316" y1="-18" x2="348" y2="-18" />
+		<line x1="316" y1="-9" x2="348" y2="-9" />
+		<line x1="316" y1="0" x2="348" y2="0" />
+		<line x1="316" y1="9" x2="348" y2="9" />
+		<line x1="316" y1="18" x2="348" y2="18" />
+	</g>
+	<g stroke="#6e6038" stroke-width="2.5" opacity="0.7">
+		<line x1="132" y1="-117" x2="132" y2="117" />
+		<line x1="-96" y1="-117" x2="-96" y2="117" />
+	</g>
+	<circle cx="151" cy="0" r="6" fill="#2a2418" />
+
+	<!-- ніша камери, кріплення, камера -->
+	<rect x="-206" y="-50" width="112" height="100" fill="#29241a" />
+	<rect x="-204" y="-60" width="110" height="13" rx="3" fill="#a99560" />
+	<rect x="-204" y="47" width="110" height="13" rx="3" fill="#a99560" />
+	<rect x="-160" y="-50" width="9" height="100" fill="#141414" />
+	<rect x="-300" y="-42" width="104" height="84" rx="10" fill="#b29e64" stroke="#6e6038" stroke-width="3" />
+	<circle cx="-262" cy="3" r="27" fill="#101010" />
+	<circle cx="-262" cy="3" r="15" fill="#22303d" />
+	<circle cx="-268" cy="-4" r="5" fill="#7b9ab0" opacity="0.85" />
+
+	<!-- помаранчева куля на хвості -->
+	<rect x="-432" y="-11" width="48" height="22" fill="#8f7e4c" />
+	<circle cx="-449" cy="0" r="50" fill="url(#ball)" />
+</svg>

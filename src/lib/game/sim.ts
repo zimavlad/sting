@@ -39,7 +39,8 @@ export function xAt(body: Body, len: number, t: number): number {
 export function makeRound(rand: () => number, tuning: Tuning, speedScale = 1): Round {
 	const shahed = { t0: 0, speed: tuning.shahedSpeed * speedScale };
 	const tShahedAtTarget = (TARGET.x + SHAHED_LEN) / shahed.speed;
-	const gap = lerp(tuning.gapMin, tuning.gapMax, rand());
+	// Множник швидкості стискає весь час, тож відстані між дронами від нього не залежать.
+	const gap = lerp(tuning.gapMin, tuning.gapMax, rand()) / speedScale;
 	const speed = tuning.stingSpeed * speedScale * (1 + tuning.stingSpread * (rand() * 2 - 1));
 	const tHit = tShahedAtTarget + gap;
 	const t0 = tHit - (TARGET.x + STING_LEN) / speed;

@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-510 -370 1020 740">
+	<!-- Shahed-136 згори, ніс праворуч. Дельта від чверті довжини, крильця на кінцях, штовхальний гвинт не видно. -->
+	<defs>
+		<linearGradient id="fus" x1="0" y1="-58" x2="0" y2="58" gradientUnits="userSpaceOnUse">
+			<stop offset="0" stop-color="#0c0c0d" />
+			<stop offset="0.3" stop-color="#3d3f42" />
+			<stop offset="0.55" stop-color="#25272a" />
+			<stop offset="1" stop-color="#09090a" />
+		</linearGradient>
+		<linearGradient id="wing" x1="250" y1="0" x2="-455" y2="0" gradientUnits="userSpaceOnUse">
+			<stop offset="0" stop-color="#2f3134" />
+			<stop offset="1" stop-color="#1b1c1e" />
+		</linearGradient>
+	</defs>
+
+	<path d="M 250 0 L -405 -360 L -455 -360 L -455 360 L -405 360 Z" fill="url(#wing)" stroke="#4a4d51" stroke-width="3" stroke-linejoin="round" />
+	<!-- елевони вздовж задньої кромки -->
+	<path d="M -400 -330 L -400 -75 M -400 75 L -400 330" stroke="#45484c" stroke-width="3" />
+	<g fill="none" stroke="#36393c" stroke-width="2.5">
+		<rect x="-250" y="-215" width="80" height="55" />
+		<rect x="-250" y="160" width="80" height="55" />
+		<rect x="-120" y="-130" width="60" height="40" />
+		<rect x="-120" y="90" width="60" height="40" />
+	</g>
+
+	<rect x="-472" y="-368" width="160" height="15" rx="5" fill="#3d4044" />
+	<rect x="-472" y="353" width="160" height="15" rx="5" fill="#3d4044" />
+
+	<path d="M -480 -58 L 390 -58 C 455 -58 500 -30 500 0 C 500 30 455 58 390 58 L -480 58 Z" fill="url(#fus)" />
+	<g stroke="#46494d" stroke-width="3">
+		<line x1="320" y1="-56" x2="320" y2="56" />
+		<line x1="40" y1="-56" x2="40" y2="56" />
+		<line x1="-330" y1="-56" x2="-330" y2="56" />
+	</g>
+	<rect x="-60" y="-38" width="70" height="76" fill="none" stroke="#45484c" stroke-width="2.5" />
+	<circle cx="494" cy="0" r="7" fill="#5a5d61" />
+
+	<rect x="-506" y="-36" width="30" height="72" rx="6" fill="#111213" />
+	<circle cx="-504" cy="0" r="13" fill="#5c5f63" />
+</svg>

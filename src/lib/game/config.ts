@@ -2,7 +2,10 @@
 export const STAGE = { w: 1920, h: 1080 } as const;
 export const TARGET = { x: 960, y: 540 } as const;
 export const STING_LEN = 340;
-export const SHAHED_LEN = 400;
+/** Піврозмах Стінга — для мірної лінії. */
+export const STING_HALF_SPAN = 0.44 * STING_LEN;
+/** Шахед удвічі довший за Стінг: у реальності він ще більший, але так обидва влазять у кадр. */
+export const SHAHED_LEN = 640;
 
 export interface Tuning {
 	/** Базова швидкість Стінга, px сцени за секунду. */
@@ -18,9 +21,10 @@ export interface Tuning {
 export const TUNING: Tuning = {
 	stingSpeed: 2600,
 	stingSpread: 0.2,
-	shahedSpeed: 900,
-	gapMin: 0.25,
-	gapMax: 1.1
+	shahedSpeed: 1100,
+	// Менше — і хвіст великого Шахеда ще закриває контур, коли туди приходить Стінг.
+	gapMin: 0.55,
+	gapMax: 1.15
 };
 
 export const TIMING = {

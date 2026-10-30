@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { STING_LEN, TARGET, TUNING } from './config';
+import { SHAHED_LEN, STING_LEN, TARGET, TUNING } from './config';
 import { betterThan, judge, makeRound, scoreFromDx, verdictOf, xAt } from './sim';
 
 const fixed = (v: number) => () => v;
@@ -23,6 +23,14 @@ describe('makeRound', () => {
 		const hi = makeRound(fixed(1), TUNING).sting.speed;
 		expect(lo).toBeCloseTo(TUNING.stingSpeed * (1 - TUNING.stingSpread));
 		expect(hi).toBeCloseTo(TUNING.stingSpeed * (1 + TUNING.stingSpread));
+	});
+
+	it('коли Стінг у контурі, хвіст Шахеда вже за його носом', () => {
+		for (const scale of [0.5, 1, 2]) {
+			const r = makeRound(fixed(0), TUNING, scale);
+			const shahedTail = xAt(r.shahed, SHAHED_LEN, r.tHit) - SHAHED_LEN / 2;
+			expect(shahedTail).toBeGreaterThan(TARGET.x + STING_LEN / 2 + 40);
+		}
 	});
 
 	it('множник швидкості прискорює обидва дрони', () => {

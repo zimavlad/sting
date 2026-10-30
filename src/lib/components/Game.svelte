@@ -170,9 +170,8 @@
 		// Запуск — одразу на сервер: так на /stats видно, що кіоск ожив.
 		analytics.flush();
 
-		if (import.meta.env.DEV) Object.assign(window, { __game: game });
-
 		const renderer = new Renderer(canvasEl);
+		if (import.meta.env.DEV) Object.assign(window, { __game: game, __renderer: renderer });
 		const ro = new ResizeObserver(([entry]) => {
 			const { width, height } = entry.contentRect;
 			renderer.resize(width, height, Math.min(devicePixelRatio || 1, 2));

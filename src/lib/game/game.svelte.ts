@@ -31,6 +31,8 @@ export class Game {
 	private phaseAt = 0;
 	private flightAt = 0;
 	private tFrozen: number | null = null;
+	/** Секунди, на яких зупинились лопаті. */
+	private frozenAt = 0;
 	private attempts = 0;
 	private sessionAt = 0;
 
@@ -93,6 +95,7 @@ export class Game {
 		this.better = j.outcome === 'hit' ? betterThan(previous, j.score) : null;
 		this.deps.onAttempt(j, this.round, this.attempts, latency);
 		this.tFrozen = tTap;
+		this.frozenAt = now / 1000;
 		this.judgement = j;
 		this.verdict = verdictOf(j);
 		this.phase = 'result';
@@ -103,7 +106,16 @@ export class Game {
 
 	tick(now: number): Scene {
 		const t = now / 1000;
-		const base: Scene = { t, shahedX: null, stingX: null, stingSpeed: 0, shahedSpeed: 0, outline: 'idle', measure: null };
+		const base: Scene = {
+			t,
+			propT: t,
+			shahedX: null,
+			stingX: null,
+			stingSpeed: 0,
+			shahedSpeed: 0,
+			outline: 'idle',
+			measure: null
+		};
 
 		switch (this.phase) {
 			case 'attract':
@@ -133,6 +145,7 @@ export class Game {
 				if (since >= TIMING.idleMs) this.toAttract(now);
 				if (this.tFrozen === null) return base;
 				const scene = this.flightScene(base, this.round, this.tFrozen, false);
+				scene.propT = this.frozenAt;
 				scene.outline = this.verdict === 'intercepted' ? 'win' : 'idle';
 				scene.measure = this.judgement?.outcome === 'hit' ? this.judgement.dx : null;
 				return scene;
@@ -155,7 +168,7 @@ export class Game {
 		const period = r.tEnd + DEMO_FREEZE + DEMO_TAIL;
 		const lt = dt % period;
 		if (lt >= r.tHit && lt < r.tHit + DEMO_FREEZE) {
-			return { ...this.flightScene(base, r, r.tHit, false), outline: 'win' };
+			return { ...this.flightScene(base, r, r.tHit, false), outline: 'win', propT: base.t - (lt - r.tHit) };
 		}
 		const ft = lt < r.tHit ? lt : lt - DEMO_FREEZE;
 		return this.flightScene(base, r, ft, true);

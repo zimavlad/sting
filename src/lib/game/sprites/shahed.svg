@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="-510 -370 1020 740">
-	<!-- Shahed-136 згори, ніс праворуч. Дельта від чверті довжини, крильця на кінцях, штовхальний гвинт не видно. -->
+	<!-- Shahed-136 згори, ніс праворуч. Дельта від чверті довжини, крильця на кінцях, штовхальний гвинт малює рендер. -->
 	<defs>
 		<linearGradient id="fus" x1="0" y1="-58" x2="0" y2="58" gradientUnits="userSpaceOnUse">
 			<stop offset="0" stop-color="#0c0c0d" />
@@ -36,5 +36,4 @@
 	<circle cx="494" cy="0" r="7" fill="#5a5d61" />
 
 	<rect x="-506" y="-36" width="30" height="72" rx="6" fill="#111213" />
-	<circle cx="-504" cy="0" r="13" fill="#5c5f63" />
 </svg>

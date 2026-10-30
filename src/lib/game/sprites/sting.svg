@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="-500 -440 1000 880">
-	<!-- Sting згори, ніс праворуч; перемальовано з рендерів Wild Hornets. Пропелери крутяться — їх не видно. -->
+	<!-- Sting згори, ніс праворуч; перемальовано з рендерів Wild Hornets. Пропелери малює рендер — вони анімовані. -->
 	<defs>
 		<linearGradient id="body" x1="0" y1="-119" x2="0" y2="119" gradientUnits="userSpaceOnUse">
 			<stop offset="0" stop-color="#7d6d40" />
@@ -70,7 +70,6 @@
 		<rect x="-284" y="-386" width="92" height="80" rx="6" fill="url(#motor)" />
 		<rect x="-268" y="-386" width="12" height="80" fill="#4a4a4a" />
 		<rect x="-236" y="-386" width="5" height="80" fill="#5a5a5a" />
-		<circle cx="-290" cy="-346" r="11" fill="#8f8f8f" />
 		<rect x="-204" y="-392" width="64" height="92" rx="8" fill="url(#cone)" />
 		<path d="M -146 -392 Q -96 -392 -72 -346 Q -96 -300 -146 -300 Z" fill="url(#cone)" />
 	</g>
@@ -78,7 +77,6 @@
 		<rect x="-284" y="306" width="92" height="80" rx="6" fill="url(#motor)" />
 		<rect x="-268" y="306" width="12" height="80" fill="#4a4a4a" />
 		<rect x="-236" y="306" width="5" height="80" fill="#5a5a5a" />
-		<circle cx="-290" cy="346" r="11" fill="#8f8f8f" />
 		<rect x="-204" y="300" width="64" height="92" rx="8" fill="url(#cone)" />
 		<path d="M -146 300 Q -96 300 -72 346 Q -96 392 -146 392 Z" fill="url(#cone)" />
 	</g>

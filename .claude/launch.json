@@ -1,0 +1,17 @@
+{
+	"version": "0.0.1",
+	"configurations": [
+		{
+			"name": "sting-dev",
+			"runtimeExecutable": "npm",
+			"runtimeArgs": ["run", "dev", "--", "--port", "5180", "--strictPort"],
+			"port": 5180
+		},
+		{
+			"name": "sting-prod",
+			"runtimeExecutable": "env",
+			"runtimeArgs": ["PORT=5181", "HOST=0.0.0.0", "DATA_DIR=./data-prod", "STATS_PASSWORD=test123", "node", "build"],
+			"port": 5181
+		}
+	]
+}

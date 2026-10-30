@@ -167,6 +167,8 @@
 			touch: navigator.maxTouchPoints,
 			ua: navigator.userAgent.slice(0, 200)
 		});
+		// Запуск — одразу на сервер: так на /stats видно, що кіоск ожив.
+		analytics.flush();
 
 		if (import.meta.env.DEV) Object.assign(window, { __game: game });
 

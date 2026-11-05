@@ -164,6 +164,9 @@
 	}
 
 	onMount(() => {
+		// Спершу аналітика: події зі змін за адресою без неї йшли б без пристрою, і сервер їх відкине.
+		analytics.start();
+
 		const params = new URLSearchParams(location.search);
 		const q = params.get('kiosk');
 		if (q === '1' || q === '0') updateSettings({ ...settings, kiosk: q === '1' });
@@ -171,10 +174,18 @@
 		if (l === 1 || l === 2 || l === 3) updateSettings({ ...settings, level: l as Level });
 		applyKiosk();
 
+		if (params.get('admin') === '1') {
+			adminOpen = true;
+			analytics.track('admin', { action: 'open' });
+			// Лише один раз: якщо лишити в адресі, автоперезавантаження кіоску знову відкриє панель поверх гри.
+			params.delete('admin');
+			const rest = params.toString();
+			history.replaceState(history.state, '', location.pathname + (rest ? `?${rest}` : ''));
+		}
+
 		// Щоб картинка мерчу зʼявлялась одразу разом із відсотком, а не за мить після нього.
 		for (const p of PRIZES) new Image().src = p.image;
 
-		analytics.start();
 		analytics.track('boot', {
 			w: screen.width,
 			h: screen.height,

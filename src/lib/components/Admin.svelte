@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { version } from '$app/environment';
 	import { analytics } from '$lib/analytics.svelte';
+	import type { Level } from '$lib/game/config';
 	import type { Settings } from '$lib/local';
 
 	interface Props {
@@ -17,6 +18,12 @@
 	let { settings, attempts, best, epoch, onChange, onReset, onCalibrate, onClose }: Props = $props();
 	let confirmReset = $state(false);
 
+	const LEVELS: { id: Level; note: string }[] = [
+		{ id: 1, note: 'Шахед, потім Стінг' },
+		{ id: 2, note: 'Порядок випадковий, пауза перед стартом, розкид швидкості ±30%' },
+		{ id: 3, note: 'Два Шахеди, Стінг на будь-якому місці, дрони на 20% швидші' }
+	];
+
 	const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 	const latency = (d: number) => onChange({ ...settings, latencyMs: clamp(settings.latencyMs + d, 0, 300) });
 	const speed = (d: number) =>
@@ -32,6 +39,25 @@
 			<h2>Налаштування стенду</h2>
 			<button class="ghost" onclick={onClose}>Закрити</button>
 		</header>
+
+		<div class="row">
+			<div>
+				<p class="label">Рівень складності</p>
+				<p class="note">{LEVELS[settings.level - 1].note}</p>
+			</div>
+			<div class="ctl" role="group" aria-label="Рівень складності">
+				{#each LEVELS as l (l.id)}
+					<button
+						class="num level"
+						class:on={settings.level === l.id}
+						aria-pressed={settings.level === l.id}
+						onclick={() => onChange({ ...settings, level: l.id })}
+					>
+						{l.id}
+					</button>
+				{/each}
+			</div>
+		</div>
 
 		<div class="row">
 			<div>
@@ -199,6 +225,12 @@
 		&:hover {
 			border-color: var(--line-hover);
 		}
+	}
+
+	.level.on {
+		background: var(--accent);
+		border-color: var(--accent);
+		color: var(--accent-ink);
 	}
 
 	.wide {

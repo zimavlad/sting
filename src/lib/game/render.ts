@@ -7,11 +7,13 @@ export interface Scene {
 	t: number;
 	/** Секунди для кута лопатей; на паузі не рухається, тож лопаті завмирають. */
 	propT: number;
-	shahedX: number | null;
+	shahedXs: number[];
 	stingX: number | null;
 	/** px/с для розмиття; 0 — Стінг зупинений. */
 	stingSpeed: number;
 	shahedSpeed: number;
+	/** 0–1: наскільки пригасити Шахеди. У портреті на результаті вони стоять під текстом. */
+	shahedDim: number;
 	outline: 'off' | 'idle' | 'win';
 	/** Зсув зупиненого Стінга від контуру — малюємо мірну лінію. */
 	measure: number | null;
@@ -45,6 +47,8 @@ const SHAHED_PROPS: Prop[] = [{ x: -508, y: 0, r: 125, dir: 1, phase: 0.4 }];
 const PROP_REV = 7;
 /** Площина гвинта перпендикулярна польоту, згори його видно майже ребром. */
 const PROP_SQUASH = 0.28;
+/** Наскільки гасне Шахед на результаті в портреті. */
+const SHAHED_FADE = 0.8;
 
 function mulberry(seed: number) {
 	return () => {
@@ -146,6 +150,11 @@ function makeOutline(sprite: HTMLCanvasElement, ring: number, color: string, fil
 export class Renderer {
 	private ctx: CanvasRenderingContext2D;
 	private scale = 1;
+	/**
+	 * Сцена завжди 1920×1080, у портреті вона просто повернута на 90°: дрони летять знизу
+	 * вгору носом угору. Швидкості, відстані й час польоту від орієнтації не залежать.
+	 */
+	private portrait = false;
 	private images: { sting: HTMLImageElement; shahed: HTMLImageElement } | null = null;
 	private bg: HTMLCanvasElement | null = null;
 	private sting: HTMLCanvasElement | null = null;
@@ -167,7 +176,8 @@ export class Renderer {
 		if (w === this.el.width && h === this.el.height && this.bg) return;
 		this.el.width = w;
 		this.el.height = h;
-		this.scale = w / STAGE.w;
+		this.portrait = h > w;
+		this.scale = Math.max(w, h) / STAGE.w;
 		this.bg = makeBackground(w, h, this.scale);
 		this.rebuildSprites();
 	}
@@ -183,17 +193,21 @@ export class Renderer {
 	}
 
 	draw(s: Scene) {
-		const { ctx, scale } = this;
+		const { ctx } = this;
 		if (!this.bg) return;
 		ctx.setTransform(1, 0, 0, 1, 0, 0);
 		ctx.globalAlpha = 1;
 		ctx.drawImage(this.bg, 0, 0);
-		ctx.setTransform(scale, 0, 0, scale, 0, 0);
+		this.world();
 		this.fog(s.t);
-		ctx.setTransform(1, 0, 0, 1, 0, 0);
 
-		if (this.shahed && s.shahedX !== null && this.blurred(this.shahed, s.shahedX, s.shahedSpeed, 2)) {
-			this.props(SHAHED_PROPS, s.shahedX, SHAHED_LEN, s.propT, s.shahedSpeed > 0, '150, 153, 157');
+		if (this.shahed) {
+			const alpha = this.portrait ? 1 - SHAHED_FADE * s.shahedDim : 1;
+			for (const x of s.shahedXs) {
+				if (this.blurred(this.shahed, x, s.shahedSpeed, 2, alpha)) {
+					this.props(SHAHED_PROPS, x, SHAHED_LEN, s.propT, s.shahedSpeed > 0, '150, 153, 157', alpha);
+				}
+			}
 		}
 		if (this.sting && s.stingX !== null) {
 			if (s.stingSpeed > 0) this.streak(s.stingX, s.stingSpeed);
@@ -208,10 +222,21 @@ export class Renderer {
 		if (s.measure !== null && s.stingX !== null) this.ruler(s.stingX);
 	}
 
-	/** Спрайт по центру в точці (x, TARGET.y) сцени; трансформація — одинична. */
+	/** Координати сцени → екран: для всього, що малюється кодом. */
+	private world() {
+		const s = this.scale;
+		if (this.portrait) this.ctx.setTransform(0, -s, s, 0, 0, this.el.height);
+		else this.ctx.setTransform(s, 0, 0, s, 0, 0);
+	}
+
+	/** Спрайт по центру в точці (x, TARGET.y) сцени: растр уже в пікселях екрана, лише повертаємо. */
 	private sprite(img: HTMLCanvasElement, x: number, alpha: number) {
-		this.ctx.globalAlpha = alpha;
-		this.ctx.drawImage(img, x * this.scale - img.width / 2, TARGET.y * this.scale - img.height / 2);
+		const s = this.scale;
+		const { ctx } = this;
+		ctx.globalAlpha = alpha;
+		if (this.portrait) ctx.setTransform(0, -1, 1, 0, TARGET.y * s, this.el.height - x * s);
+		else ctx.setTransform(1, 0, 0, 1, x * s, TARGET.y * s);
+		ctx.drawImage(img, -img.width / 2, -img.height / 2);
 	}
 
 	private fog(t: number) {
@@ -242,12 +267,12 @@ export class Renderer {
 	}
 
 	/** Розмиття руху — кілька прозорих копій позаду. false — дрон за межами екрана. */
-	private blurred(img: HTMLCanvasElement, x: number, speed: number, ghosts: number) {
+	private blurred(img: HTMLCanvasElement, x: number, speed: number, ghosts: number, alpha = 1) {
 		const half = img.width / this.scale / 2;
 		if (x < -half || x > STAGE.w + half) return false;
 		const n = speed > 0 ? ghosts : 0;
 		for (let k = n; k >= 0; k--) {
-			this.sprite(img, x - k * speed * 0.011, k === 0 ? 1 : 0.3 * (1 - k / (n + 1)));
+			this.sprite(img, x - k * speed * 0.011, alpha * (k === 0 ? 1 : 0.3 * (1 - k / (n + 1))));
 		}
 		this.ctx.globalAlpha = 1;
 		return true;
@@ -257,10 +282,11 @@ export class Renderer {
 	 * Гвинти: у русі — прозорий диск і дві лопаті зі шлейфом, на паузі — лише чіткі лопаті,
 	 * як на кадрі з короткою витримкою.
 	 */
-	private props(list: Prop[], x: number, len: number, t: number, spinning: boolean, rgb: string) {
-		const { ctx, scale } = this;
+	private props(list: Prop[], x: number, len: number, t: number, spinning: boolean, rgb: string, alpha = 1) {
+		const { ctx } = this;
 		const u = len / 1000;
-		ctx.setTransform(scale, 0, 0, scale, 0, 0);
+		this.world();
+		ctx.globalAlpha = alpha;
 		ctx.lineCap = 'round';
 		for (const p of list) {
 			const cx = x + p.x * u;
@@ -301,12 +327,12 @@ export class Renderer {
 			ctx.arc(cx, cy, r * 0.045, 0, Math.PI * 2);
 			ctx.fill();
 		}
-		ctx.setTransform(1, 0, 0, 1, 0, 0);
+		ctx.globalAlpha = 1;
 	}
 
 	private streak(x: number, speed: number) {
-		const { ctx, scale } = this;
-		ctx.setTransform(scale, 0, 0, scale, 0, 0);
+		const { ctx } = this;
+		this.world();
 		const tail = x - STING_LEN * 0.4;
 		const from = tail - speed * 0.14;
 		const g = ctx.createLinearGradient(from, 0, tail, 0);
@@ -316,13 +342,12 @@ export class Renderer {
 		ctx.fillRect(from, TARGET.y - 40, tail - from, 80);
 		ctx.fillStyle = 'rgba(255,255,255,0.06)';
 		for (const dy of [-130, 130]) ctx.fillRect(from + 80, TARGET.y + dy - 1, tail - from - 140, 2);
-		ctx.setTransform(1, 0, 0, 1, 0, 0);
 	}
 
 	/** Мірна лінія: де мав бути центр і де Стінг зупинився. */
 	private ruler(stingX: number) {
-		const { ctx, scale } = this;
-		ctx.setTransform(scale, 0, 0, scale, 0, 0);
+		const { ctx } = this;
+		this.world();
 		const top = TARGET.y - STING_HALF_SPAN - 20;
 		const y = TARGET.y + STING_HALF_SPAN + 30;
 		ctx.lineWidth = 2;
@@ -340,6 +365,5 @@ export class Renderer {
 		ctx.moveTo(TARGET.x, y);
 		ctx.lineTo(stingX, y);
 		ctx.stroke();
-		ctx.setTransform(1, 0, 0, 1, 0, 0);
 	}
 }

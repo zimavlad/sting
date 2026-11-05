@@ -12,8 +12,8 @@ interface Strings {
 	early: (ms: number) => string;
 	exact: string;
 	better: (pct: number) => string;
+	prize: string;
 	retry: string;
-	rotate: string;
 }
 
 export const STRINGS: Record<Lang, Strings> = {
@@ -34,8 +34,8 @@ export const STRINGS: Record<Lang, Strings> = {
 		early: (ms) => `${ms} ms early`,
 		exact: 'Right on time',
 		better: (pct) => `Better than ${pct}% of players`,
-		retry: 'Tap to try again',
-		rotate: 'Turn your phone sideways'
+		prize: 'Your prize',
+		retry: 'Tap to try again'
 	},
 	uk: {
 		title: 'Зможеш спіймати Стінг?',
@@ -54,7 +54,7 @@ export const STRINGS: Record<Lang, Strings> = {
 		early: (ms) => `Зарано на ${ms} мс`,
 		exact: 'Точно в момент',
 		better: (pct) => `Краще, ніж ${pct}% гравців`,
-		retry: 'Торкнись, щоб спробувати ще',
-		rotate: 'Поверни телефон горизонтально'
+		prize: 'Твій приз',
+		retry: 'Торкнись, щоб спробувати ще'
 	}
 };

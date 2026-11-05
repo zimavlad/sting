@@ -1,6 +1,8 @@
 // Усе, що кіоск памʼятає між перезапусками. localStorage може бути недоступний
 // (приватне вікно, заборонені дані сайту) — тоді гра працює, просто без памʼяті.
 
+import type { Level } from './game/config';
+
 const PREFIX = 'sting.';
 
 function read<T>(key: string, fallback: T): T {
@@ -38,11 +40,13 @@ export interface Settings {
 	latencyMs: number;
 	/** Множник швидкості обох дронів. */
 	speed: number;
+	/** Рівень складності: перемикає людина на стенді залежно від черги. */
+	level: Level;
 	/** Пристрій на стенді: ховає курсор, не дає екрану заснути, позначає події. */
 	kiosk: boolean;
 }
 
-const DEFAULTS: Settings = { latencyMs: 0, speed: 1, kiosk: false };
+const DEFAULTS: Settings = { latencyMs: 0, speed: 1, level: 1, kiosk: false };
 
 export const loadSettings = (): Settings => ({ ...DEFAULTS, ...read<Partial<Settings>>('settings', {}) });
 export const saveSettings = (s: Settings) => write('settings', s);

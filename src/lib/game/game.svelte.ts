@@ -1,4 +1,4 @@
-import { SHAHED_LEN, STING_LEN, TIMING, TUNING } from './config';
+import { LEVELS, SHAHED_LEN, STING_LEN, TIMING, TUNING, type Level } from './config';
 import type { Scene } from './render';
 import { betterThan, judge, makeRound, verdictOf, xAt, type Judgement, type Round, type Verdict } from './sim';
 
@@ -7,6 +7,7 @@ export type Phase = 'attract' | 'ready' | 'flight' | 'result';
 export interface GameDeps {
 	latencyMs: () => number;
 	speed: () => number;
+	level: () => Level;
 	/** Результати поточного заходу — для «краще, ніж N%». */
 	scores: () => number[];
 	onStart: () => void;
@@ -17,6 +18,8 @@ export interface GameDeps {
 /** Демо на екрані очікування: Стінг завмирає в контурі, щоб було видно мету. */
 const DEMO_FREEZE = 1.3;
 const DEMO_TAIL = 1.4;
+/** За скільки мс Шахед пригасає на результаті. */
+const SHAHED_DIM_MS = 240;
 
 export class Game {
 	phase = $state<Phase>('attract');
@@ -80,7 +83,7 @@ export class Game {
 	}
 
 	private toReady(now: number) {
-		this.round = makeRound(Math.random, TUNING, this.deps.speed());
+		this.round = makeRound(Math.random, LEVELS[this.deps.level()], this.deps.speed());
 		this.phase = 'ready';
 		this.phaseAt = now;
 		this.judgement = null;
@@ -109,10 +112,11 @@ export class Game {
 		const base: Scene = {
 			t,
 			propT: t,
-			shahedX: null,
+			shahedXs: [],
 			stingX: null,
 			stingSpeed: 0,
 			shahedSpeed: 0,
+			shahedDim: 0,
 			outline: 'idle',
 			measure: null
 		};
@@ -146,6 +150,7 @@ export class Game {
 				if (this.tFrozen === null) return base;
 				const scene = this.flightScene(base, this.round, this.tFrozen, false);
 				scene.propT = this.frozenAt;
+				scene.shahedDim = Math.min(1, Math.max(0, since / SHAHED_DIM_MS));
 				scene.outline = this.verdict === 'intercepted' ? 'win' : 'idle';
 				scene.measure = this.judgement?.outcome === 'hit' ? this.judgement.dx : null;
 				return scene;
@@ -156,9 +161,9 @@ export class Game {
 	private flightScene(base: Scene, r: Round, ft: number, moving: boolean): Scene {
 		return {
 			...base,
-			shahedX: xAt(r.shahed, SHAHED_LEN, ft),
+			shahedXs: r.shaheds.map((s) => xAt(s, SHAHED_LEN, ft)),
 			stingX: xAt(r.sting, STING_LEN, ft),
-			shahedSpeed: moving ? r.shahed.speed : 0,
+			shahedSpeed: moving ? r.shaheds[0].speed : 0,
 			stingSpeed: moving ? r.sting.speed : 0
 		};
 	}

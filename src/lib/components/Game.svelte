@@ -3,8 +3,9 @@
 	import { Tween } from 'svelte/motion';
 	import { cubicOut } from 'svelte/easing';
 	import { analytics } from '$lib/analytics.svelte';
-	import { TIMING } from '$lib/game/config';
+	import { TIMING, type Level } from '$lib/game/config';
 	import { Game } from '$lib/game/game.svelte';
+	import { PRIZES, prizeFor } from '$lib/game/prizes';
 	import { Renderer } from '$lib/game/render';
 	import { STRINGS, type Lang } from '$lib/i18n';
 	import {
@@ -39,6 +40,7 @@
 	const game = new Game({
 		latencyMs: () => settings.latencyMs,
 		speed: () => settings.speed,
+		level: () => settings.level,
 		scores: () => scores,
 		onStart: () => {
 			analytics.session = uid().slice(0, 12);
@@ -52,8 +54,11 @@
 				score: j.score,
 				dx: j.dx === null ? null : Math.round(j.dx),
 				errMs: j.errMs === null ? null : Math.round(j.errMs),
+				level: settings.level,
+				ahead: round.ahead,
+				prize: prizeFor(j.score).id,
 				stingSpeed: Math.round(round.sting.speed),
-				gap: Math.round(round.gap * 1000) / 1000,
+				gap: round.gap === null ? null : Math.round(round.gap * 1000) / 1000,
 				speed: settings.speed,
 				latencyMs,
 				n: attempt,
@@ -87,7 +92,11 @@
 
 	function inAdminCorner(e: PointerEvent) {
 		const r = stage.getBoundingClientRect();
-		return e.clientX - r.left < r.width * 0.08 && e.clientY - r.top < r.height * 0.12;
+		const x = (e.clientX - r.left) / r.width;
+		const y = (e.clientY - r.top) / r.height;
+		// Портретний 86" заввишки майже 2 м, до верхнього кута можна не дістати, тож там працює і нижній.
+		if (r.height > r.width) return x < 0.14 && (y < 0.07 || y > 0.93);
+		return x < 0.08 && y < 0.12;
 	}
 
 	function onDown(e: PointerEvent) {
@@ -155,9 +164,15 @@
 	}
 
 	onMount(() => {
-		const q = new URLSearchParams(location.search).get('kiosk');
+		const params = new URLSearchParams(location.search);
+		const q = params.get('kiosk');
 		if (q === '1' || q === '0') updateSettings({ ...settings, kiosk: q === '1' });
+		const l = Number(params.get('level'));
+		if (l === 1 || l === 2 || l === 3) updateSettings({ ...settings, level: l as Level });
 		applyKiosk();
+
+		// Щоб картинка мерчу зʼявлялась одразу разом із відсотком, а не за мить після нього.
+		for (const p of PRIZES) new Image().src = p.image;
 
 		analytics.start();
 		analytics.track('boot', {
@@ -271,24 +286,33 @@
 			<p class="layer hint">{s.hint}</p>
 		{:else if game.judgement && game.verdict}
 			{@const j = game.judgement}
+			{@const prize = prizeFor(j.score)}
 			<div class="layer result">
 				<div class="top">
 					<p class="verdict" class:win={game.verdict === 'intercepted'}>{s.verdict[game.verdict]}</p>
 					<p class="score num">{shown.current.toFixed(1)}<span class="pct">%</span></p>
 				</div>
 				<div class="bottom">
-					{#if j.outcome === 'hit' && j.errMs !== null}
-						<p>{fmtMs(j.errMs) === 0 ? s.exact : j.errMs > 0 ? s.late(fmtMs(j.errMs)) : s.early(fmtMs(j.errMs))}</p>
-					{/if}
-					{#if game.better !== null}
-						<p>{s.better(game.better)}</p>
-					{/if}
+					<div class="prize">
+						<img src={prize.image} alt="" />
+						<div>
+							<p class="prize-label">{s.prize}</p>
+							<p class="prize-name">{prize.name[lang]}</p>
+						</div>
+					</div>
+					<div class="facts">
+						{#if j.outcome === 'hit' && j.errMs !== null}
+							<p>{fmtMs(j.errMs) === 0 ? s.exact : j.errMs > 0 ? s.late(fmtMs(j.errMs)) : s.early(fmtMs(j.errMs))}</p>
+						{/if}
+						{#if game.better !== null}
+							<p>{s.better(game.better)}</p>
+						{/if}
+					</div>
+					<p class="retry" class:on={game.canRetry}>{s.retry}</p>
 				</div>
-				<p class="retry" class:on={game.canRetry}>{s.retry}</p>
 			</div>
 		{/if}
 	</div>
-	<p class="rotate">{s.rotate}</p>
 </div>
 
 {#if adminOpen}
@@ -317,6 +341,13 @@
 {/if}
 
 <style lang="scss">
+	// Розміри в cqw: 1cqw — це 1% ширини сцени, а в портреті вона майже вдвічі вужча.
+	@mixin portrait {
+		@media (orientation: portrait) {
+			@content;
+		}
+	}
+
 	.viewport {
 		position: fixed;
 		inset: 0;
@@ -339,6 +370,11 @@
 		-webkit-user-select: none;
 		-webkit-touch-callout: none;
 		cursor: pointer;
+
+		@include portrait {
+			width: min(100vw, calc(100dvh * 9 / 16));
+			aspect-ratio: 9 / 16;
+		}
 	}
 
 	:global(html.kiosk) .stage,
@@ -382,6 +418,14 @@
 			line-height: 1;
 			text-transform: uppercase;
 			letter-spacing: 0.01em;
+
+			@include portrait {
+				top: 7%;
+				padding: 0 6cqw;
+				font-size: 12cqw;
+				line-height: 1.04;
+				text-wrap: balance;
+			}
 		}
 
 		.play {
@@ -393,6 +437,11 @@
 			font-size: max(2cqw, 13px);
 			color: var(--accent);
 			animation: breathe 1.6s var(--ease) infinite alternate;
+
+			@include portrait {
+				bottom: 13%;
+				font-size: 5cqw;
+			}
 		}
 
 		.best {
@@ -402,6 +451,14 @@
 			margin: 0;
 			font-size: max(1.15cqw, 11px);
 			color: var(--muted);
+
+			@include portrait {
+				left: 5%;
+				bottom: 3.4%;
+				max-width: 44%;
+				text-align: left;
+				font-size: max(2.6cqw, 11px);
+			}
 
 			.num {
 				color: var(--text);
@@ -426,6 +483,12 @@
 		gap: 0.5cqw;
 		pointer-events: auto;
 
+		@include portrait {
+			right: 5%;
+			bottom: 2.6%;
+			gap: 1.4cqw;
+		}
+
 		button {
 			min-width: 4.4cqw;
 			padding: 0.55cqw 0.9cqw;
@@ -440,6 +503,14 @@
 				border-color var(--dur) var(--ease),
 				color var(--dur) var(--ease),
 				background var(--dur) var(--ease);
+
+			@include portrait {
+				min-width: 13cqw;
+				min-height: max(7.5cqw, 44px);
+				padding: 0 2cqw;
+				font-size: max(2.8cqw, 12px);
+				border-radius: 1.6cqw;
+			}
 
 			&:hover {
 				border-color: var(--line-hover);
@@ -458,6 +529,12 @@
 		bottom: 8%;
 		font-size: max(1.7cqw, 12px);
 		color: var(--muted);
+
+		@include portrait {
+			bottom: 5%;
+			padding: 0 8cqw;
+			font-size: max(3.6cqw, 13px);
+		}
 	}
 
 	.result {
@@ -466,6 +543,10 @@
 			top: 3%;
 			left: 0;
 			right: 0;
+
+			@include portrait {
+				top: 13%;
+			}
 		}
 
 		.verdict {
@@ -473,6 +554,10 @@
 			font-size: 2.6cqw;
 			font-weight: 700;
 			font-stretch: 85%;
+
+			@include portrait {
+				font-size: 7.5cqw;
+			}
 
 			&.win {
 				color: var(--accent);
@@ -489,6 +574,11 @@
 			display: inline-block;
 			min-width: 6ch;
 
+			@include portrait {
+				margin-top: 1cqw;
+				font-size: 19cqw;
+			}
+
 			.pct {
 				font-size: 0.5em;
 				color: var(--muted);
@@ -496,29 +586,106 @@
 			}
 		}
 
+		// Під зупиненим Стінгом: мерч, цифри, повтор.
 		.bottom {
 			position: absolute;
-			top: 76%;
+			bottom: 3%;
 			left: 0;
 			right: 0;
-			font-size: max(1.6cqw, 12px);
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			gap: 0.8cqw;
+
+			@include portrait {
+				top: 61%;
+				gap: 3cqw;
+			}
+		}
+
+		.prize {
+			display: flex;
+			align-items: center;
+			gap: 1.2cqw;
+			padding: 0.5cqw 2.4cqw 0.5cqw 0.8cqw;
+			background: var(--surface);
+			border: 1px solid var(--line);
+			border-radius: 0.9cqw;
+			text-align: left;
+			animation: rise 240ms var(--ease) both;
+
+			@include portrait {
+				width: 84cqw;
+				gap: 4cqw;
+				padding: 2cqw 4cqw 2cqw 2cqw;
+				border-radius: 2.4cqw;
+			}
+
+			img {
+				display: block;
+				width: 6.4cqw;
+				height: 6.4cqw;
+				object-fit: contain;
+
+				@include portrait {
+					width: 27cqw;
+					height: 27cqw;
+				}
+			}
+		}
+
+		.prize-label {
+			margin: 0;
+			font-size: max(1.1cqw, 11px);
 			color: var(--muted);
 
+			@include portrait {
+				font-size: max(3.4cqw, 12px);
+			}
+		}
+
+		.prize-name {
+			margin: 0.15cqw 0 0;
+			font-size: 2.4cqw;
+			font-weight: 700;
+			font-stretch: 85%;
+			line-height: 1.05;
+			color: var(--accent);
+
+			@include portrait {
+				margin-top: 0.8cqw;
+				font-size: 9cqw;
+			}
+		}
+
+		.facts {
+			font-size: max(1.5cqw, 12px);
+			color: var(--muted);
+
+			@include portrait {
+				font-size: max(3.4cqw, 12px);
+			}
+
 			p {
-				margin: 0 0 0.5cqw;
+				margin: 0 0 0.3cqw;
+
+				@include portrait {
+					margin-bottom: 1cqw;
+				}
 			}
 		}
 
 		.retry {
-			position: absolute;
-			bottom: 5%;
-			left: 0;
-			right: 0;
 			margin: 0;
 			font-size: max(1.8cqw, 13px);
 			color: var(--accent);
 			opacity: 0;
 			transition: opacity var(--dur) var(--ease);
+
+			@include portrait {
+				margin-top: auto;
+				font-size: 4.6cqw;
+			}
 
 			&.on {
 				opacity: 1;
@@ -527,23 +694,10 @@
 		}
 	}
 
-	.rotate {
-		display: none;
-	}
-
-	@media (orientation: portrait) and (max-width: 700px) {
-		.viewport {
-			align-content: center;
-			gap: 16px;
-		}
-
-		.rotate {
-			display: block;
-			margin: 0;
-			padding: 0 16px;
-			font-size: 14px;
-			color: var(--muted);
-			text-align: center;
+	@keyframes rise {
+		from {
+			opacity: 0;
+			transform: translateY(1cqw);
 		}
 	}
 </style>

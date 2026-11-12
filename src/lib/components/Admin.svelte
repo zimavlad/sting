@@ -61,8 +61,25 @@
 
 		<div class="row">
 			<div>
+				<p class="label">Керування кнопкою</p>
+				<p class="note">Підписи кажуть «натисни кнопку». Вмикається саме після першого натискання кнопки</p>
+			</div>
+			<button
+				class="toggle"
+				class:on={settings.button}
+				role="switch"
+				aria-checked={settings.button}
+				aria-label="Керування кнопкою"
+				onclick={() => onChange({ ...settings, button: !settings.button })}
+			>
+				<span></span>
+			</button>
+		</div>
+
+		<div class="row">
+			<div>
 				<p class="label">Затримка сенсора</p>
-				<p class="note">Віднімається від моменту дотику</p>
+				<p class="note">Віднімається від моменту дотику чи натискання кнопки</p>
 			</div>
 			<div class="ctl">
 				<button onclick={() => latency(-5)} aria-label="Менше">−</button>

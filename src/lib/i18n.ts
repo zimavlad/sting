@@ -14,6 +14,8 @@ interface Strings {
 	better: (pct: number) => string;
 	prize: string;
 	retry: string;
+	/** Ті самі підписи, коли грають кнопкою, а не дотиком. */
+	button: { play: string; hint: string; retry: string };
 }
 
 export const STRINGS: Record<Lang, Strings> = {
@@ -35,7 +37,12 @@ export const STRINGS: Record<Lang, Strings> = {
 		exact: 'Right on time',
 		better: (pct) => `Better than ${pct}% of players`,
 		prize: 'Your prize',
-		retry: 'Tap to try again'
+		retry: 'Tap to try again',
+		button: {
+			play: 'Press the button to play',
+			hint: 'Press the button when the Sting fills the outline',
+			retry: 'Press to try again'
+		}
 	},
 	uk: {
 		title: 'Зможеш спіймати Стінг?',
@@ -55,6 +62,11 @@ export const STRINGS: Record<Lang, Strings> = {
 		exact: 'Точно в момент',
 		better: (pct) => `Краще, ніж ${pct}% гравців`,
 		prize: 'Твій приз',
-		retry: 'Торкнись, щоб спробувати ще'
+		retry: 'Торкнись, щоб спробувати ще',
+		button: {
+			play: 'Натисни кнопку, щоб зіграти',
+			hint: 'Натисни кнопку, коли Стінг влетить у контур',
+			retry: 'Натисни, щоб спробувати ще'
+		}
 	}
 };

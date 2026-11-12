@@ -44,9 +44,11 @@ export interface Settings {
 	level: Level;
 	/** Пристрій на стенді: ховає курсор, не дає екрану заснути, позначає події. */
 	kiosk: boolean;
+	/** Грають кнопкою, а не дотиком: підписи кажуть «натисни кнопку». Вмикається саме після першого натискання. */
+	button: boolean;
 }
 
-const DEFAULTS: Settings = { latencyMs: 0, speed: 1, level: 1, kiosk: false };
+const DEFAULTS: Settings = { latencyMs: 0, speed: 1, level: 1, kiosk: false, button: false };
 
 export const loadSettings = (): Settings => ({ ...DEFAULTS, ...read<Partial<Settings>>('settings', {}) });
 export const saveSettings = (s: Settings) => write('settings', s);

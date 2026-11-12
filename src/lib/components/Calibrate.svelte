@@ -1,8 +1,9 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { isActionKey, Pads, readPads } from '$lib/input';
 
 	// Людина тапає в такт тому, що бачить, тож середній зсув від такту =
-	// затримка екрана + сенсора. Саме її гра й віднімає від дотику.
+	// затримка екрана + сенсора чи кнопки: калібрувати треба тим, чим гратимуть. Саме її гра й віднімає від дотику.
 	const BEAT_MS = 800;
 	const TAPS = 16;
 	const WARMUP = 4;
@@ -20,9 +21,12 @@
 		return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
 	}
 
-	function tap(e: PointerEvent) {
-		if (!e.isPrimary || result !== null) return;
-		const stamp = e.timeStamp || performance.now();
+	function onPointer(e: PointerEvent) {
+		if (e.isPrimary) tap(e.timeStamp || performance.now());
+	}
+
+	function tap(stamp: number) {
+		if (result !== null) return;
 		const k = Math.round((stamp - start) / BEAT_MS);
 		offsets = [...offsets, stamp - (start + k * BEAT_MS)];
 		if (offsets.length >= TAPS) result = Math.max(0, Math.round(median(offsets.slice(WARMUP))));
@@ -37,21 +41,34 @@
 	onMount(() => {
 		start = performance.now() + BEAT_MS;
 		let raf = 0;
+		const pads = new Pads();
 		const loop = (now: number) => {
+			const pad = pads.poll(readPads(), performance.now());
+			if (pad.down !== null) tap(pad.down);
 			const phase = (now - start) % BEAT_MS;
 			flash = now >= start && (phase < 90 || phase > BEAT_MS - 10);
 			raf = requestAnimationFrame(loop);
 		};
 		raf = requestAnimationFrame(loop);
-		return () => cancelAnimationFrame(raf);
+		const onKey = (e: KeyboardEvent) => {
+			if (!isActionKey(e)) return;
+			// Інакше пробіл натисне кнопку, що лишилась у фокусі після кліку.
+			e.preventDefault();
+			tap(e.timeStamp || performance.now());
+		};
+		addEventListener('keydown', onKey);
+		return () => {
+			cancelAnimationFrame(raf);
+			removeEventListener('keydown', onKey);
+		};
 	});
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div class="cal" onpointerdown={tap} oncontextmenu={(e) => e.preventDefault()}>
+<div class="cal" onpointerdown={onPointer} oncontextmenu={(e) => e.preventDefault()}>
 	<div class="beat" class:flash></div>
 	{#if result === null}
-		<p>Торкайся екрана рівно в такт спалахам</p>
+		<p>Торкайся екрана або натискай кнопку рівно в такт спалахам</p>
 		<p class="num count">{offsets.length} / {TAPS}</p>
 	{:else}
 		<p>Затримка ≈ <span class="num">{result}&nbsp;мс</span></p>

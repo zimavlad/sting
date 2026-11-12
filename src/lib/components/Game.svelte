@@ -8,6 +8,7 @@
 	import { PRIZES, prizeFor } from '$lib/game/prizes';
 	import { Renderer } from '$lib/game/render';
 	import { STRINGS, type Lang } from '$lib/i18n';
+	import { isActionKey, Pads, readPads } from '$lib/input';
 	import {
 		currentEpoch,
 		loadScores,
@@ -32,8 +33,12 @@
 	let adminOpen = $state(false);
 	let calibrating = $state(false);
 	let needsReload = false;
+	/** Чим зроблено останнє натискання — пишемо в подію спроби. */
+	let lastInput: 'touch' | 'key' | 'pad' = 'touch';
 
 	const s = $derived(STRINGS[lang]);
+	/** Підписи дії: про дотик або про кнопку. */
+	const act = $derived(settings.button ? s.button : s);
 	const reduced = typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 	const shown = new Tween(0, { duration: reduced ? 0 : 650, easing: cubicOut });
 
@@ -61,6 +66,7 @@
 				gap: round.gap === null ? null : Math.round(round.gap * 1000) / 1000,
 				speed: settings.speed,
 				latencyMs,
+				input: lastInput,
 				n: attempt,
 				lang
 			});
@@ -103,6 +109,7 @@
 		if (!e.isPrimary || (e.pointerType === 'mouse' && e.button !== 0)) return;
 		held = false;
 		if (game.phase === 'flight') {
+			lastInput = 'touch';
 			game.press(e.timeStamp || performance.now());
 			return;
 		}
@@ -123,6 +130,23 @@
 
 	function cancelHold() {
 		clearTimeout(holdTimer);
+	}
+
+	// --- кнопка замість дотику: клавіша або геймпад ------------------------------
+
+	/** Натискання кнопки: у польоті зупиняє Стінг. Панель і калібрування мають свої клавіші. */
+	function buttonDown(stamp: number, kind: 'key' | 'pad') {
+		if (adminOpen || calibrating) return;
+		if (!settings.button) updateSettings({ ...settings, button: true });
+		if (game.phase !== 'flight') return;
+		lastInput = kind;
+		game.press(stamp);
+	}
+
+	/** Відпускання кнопки: старт з очікування й нова спроба — як і з пальцем. */
+	function buttonUp() {
+		if (adminOpen || calibrating) return;
+		game.release(performance.now());
 	}
 
 	// --- налаштування стенду ---------------------------------------------------
@@ -172,6 +196,8 @@
 		if (q === '1' || q === '0') updateSettings({ ...settings, kiosk: q === '1' });
 		const l = Number(params.get('level'));
 		if (l === 1 || l === 2 || l === 3) updateSettings({ ...settings, level: l as Level });
+		const b = params.get('button');
+		if (b === '1' || b === '0') updateSettings({ ...settings, button: b === '1' });
 		applyKiosk();
 
 		if (params.get('admin') === '1') {
@@ -206,7 +232,12 @@
 
 		let frames = 0;
 		let raf = 0;
+		const pads = new Pads();
 		const loop = (now: number) => {
+			// Геймпад подій не шле: дивимось на нього перед кадром, щоб натискання потрапило в цей же кадр.
+			const pad = pads.poll(readPads(), performance.now());
+			if (pad.down !== null) buttonDown(pad.down, 'pad');
+			if (pad.up) buttonUp();
 			renderer.draw(game.tick(now));
 			frames++;
 			raf = requestAnimationFrame(loop);
@@ -232,6 +263,17 @@
 			analytics.track('error', { msg: String(e.reason?.message ?? e.reason).slice(0, 300) });
 		addEventListener('error', onError);
 		addEventListener('unhandledrejection', onRejection);
+		const onKeyDown = (e: KeyboardEvent) => {
+			if (!isActionKey(e) || adminOpen || calibrating) return;
+			// Пробіл і стрілки не мають гортати сторінку чи тиснути кнопку у фокусі.
+			e.preventDefault();
+			buttonDown(e.timeStamp || performance.now(), 'key');
+		};
+		const onKeyUp = (e: KeyboardEvent) => {
+			if (isActionKey(e)) buttonUp();
+		};
+		addEventListener('keydown', onKeyDown);
+		addEventListener('keyup', onKeyUp);
 		const onVisible = () => document.visibilityState === 'visible' && applyKiosk();
 		document.addEventListener('visibilitychange', onVisible);
 
@@ -254,6 +296,8 @@
 			clearInterval(swPoll);
 			removeEventListener('error', onError);
 			removeEventListener('unhandledrejection', onRejection);
+			removeEventListener('keydown', onKeyDown);
+			removeEventListener('keyup', onKeyUp);
 			document.removeEventListener('visibilitychange', onVisible);
 		};
 	});
@@ -277,7 +321,7 @@
 		{#if game.phase === 'attract'}
 			<div class="layer attract">
 				<h1>{s.title}</h1>
-				<p class="play">{s.play}</p>
+				<p class="play">{act.play}</p>
 				{#if game.best !== null}
 					<p class="best">{s.best} <span class="num">{game.best.toFixed(1)}%</span></p>
 				{/if}
@@ -294,7 +338,7 @@
 				</div>
 			</div>
 		{:else if game.phase === 'ready' || game.phase === 'flight'}
-			<p class="layer hint">{s.hint}</p>
+			<p class="layer hint">{act.hint}</p>
 		{:else if game.judgement && game.verdict}
 			{@const j = game.judgement}
 			{@const prize = prizeFor(j.score)}
@@ -319,7 +363,7 @@
 							<p>{s.better(game.better)}</p>
 						{/if}
 					</div>
-					<p class="retry" class:on={game.canRetry}>{s.retry}</p>
+					<p class="retry" class:on={game.canRetry}>{act.retry}</p>
 				</div>
 			</div>
 		{/if}

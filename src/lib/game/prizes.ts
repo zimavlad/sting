@@ -10,16 +10,14 @@ export interface Prize {
 }
 
 /**
- * Мерч за результат, від дорогого до дешевого. Пороги спільні для всіх рівнів, тож
- * складніший рівень сам зменшує видачу дорогого. Картинки поки заглушки: коли мерч
- * погодять, покласти фото в static/merch і змінити тут image (підійде png, webp чи svg).
+ * Мерч за результат, від дорогого до дешевого — список і пороги від замовника (15.11.2026).
+ * Пороги спільні для всіх рівнів. Футболка — лише за 100.0% на екрані, тобто за влучання без
+ * жодного зсуву. Картинки — заглушки: фото можна покласти в static/merch і змінити тут image.
  */
 export const PRIZES: readonly Prize[] = [
-	{ id: 'tote', min: 95, image: '/merch/tote.svg', name: { en: 'Tote bag', uk: 'Шопер' } },
-	{ id: 'carabiner', min: 80, image: '/merch/carabiner.svg', name: { en: 'Carabiner', uk: 'Карабін' } },
-	{ id: 'keychain', min: 60, image: '/merch/keychain.svg', name: { en: 'Keychain', uk: 'Брелок' } },
-	{ id: 'pen', min: 30, image: '/merch/pen.svg', name: { en: 'Pen', uk: 'Ручка' } },
-	{ id: 'candy', min: 0, image: '/merch/candy.svg', name: { en: 'Sweets', uk: 'Цукерки' } }
+	{ id: 'tshirt', min: 100, image: '/merch/tshirt.svg', name: { en: 'T-shirt', uk: 'Футболка' } },
+	{ id: 'keychain', min: 50, image: '/merch/keychain.svg', name: { en: 'Keychain', uk: 'Брелок' } },
+	{ id: 'stickers', min: 0, image: '/merch/stickers.svg', name: { en: 'Stickers', uk: 'Стікери' } }
 ];
 
 export const prizeFor = (score: number): Prize => PRIZES.find((p) => score >= p.min) ?? PRIZES[PRIZES.length - 1];

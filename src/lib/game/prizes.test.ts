@@ -1,21 +1,26 @@
 import { describe, expect, it } from 'vitest';
 import { PRIZES, prizeFor } from './prizes';
+import { scoreFromDx } from './sim';
 
 describe('prizeFor', () => {
-	it('межі порогів', () => {
-		expect(prizeFor(100).id).toBe('tote');
-		expect(prizeFor(95).id).toBe('tote');
-		expect(prizeFor(94.9).id).toBe('carabiner');
-		expect(prizeFor(80).id).toBe('carabiner');
-		expect(prizeFor(79.9).id).toBe('keychain');
-		expect(prizeFor(60).id).toBe('keychain');
-		expect(prizeFor(59.9).id).toBe('pen');
-		expect(prizeFor(30).id).toBe('pen');
-		expect(prizeFor(29.9).id).toBe('candy');
+	it('межі порогів: футболка лише за 100%, брелок від 50%, решта — стікери', () => {
+		expect(prizeFor(100).id).toBe('tshirt');
+		expect(prizeFor(99.9).id).toBe('keychain');
+		expect(prizeFor(50).id).toBe('keychain');
+		expect(prizeFor(49.9).id).toBe('stickers');
 	});
 
-	it('0% теж отримує мерч: зарано, запізно й промах ідуть із цукерками', () => {
-		expect(prizeFor(0).id).toBe('candy');
+	it('0% теж отримує мерч: зарано, запізно й промах ідуть зі стікерами', () => {
+		expect(prizeFor(0).id).toBe('stickers');
+	});
+
+	it('призів рівно три, як погодив замовник', () => {
+		expect(PRIZES.map((p) => p.id)).toEqual(['tshirt', 'keychain', 'stickers']);
+	});
+
+	it('футболку дає те, що гравець бачить як 100.0%, і не дає 99.9%', () => {
+		expect(prizeFor(scoreFromDx(0)).id).toBe('tshirt');
+		expect(prizeFor(scoreFromDx(0.5)).id).toBe('keychain');
 	});
 
 	it('список іде від дорогого до дешевого, інакше пошук дасть не той приз', () => {

@@ -79,6 +79,11 @@
 		}
 	});
 
+	// Мова сторінки — за перемикачем, щоб браузер не вважав українську англійською.
+	$effect(() => {
+		document.documentElement.lang = lang;
+	});
+
 	$effect(() => {
 		const j = game.judgement;
 		if (!j) return;
